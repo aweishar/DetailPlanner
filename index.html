@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DetailPlanner</title>
+    <title>DetailPlanner Pro</title>
     <style>
         :root {
             --primary: #2c3e50;
@@ -11,6 +11,7 @@
             --danger: #c0392b;
             --light: #ecf0f1;
             --success: #27ae60;
+            --warning: #f39c12;
         }
 
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #f4f7f6; padding: 20px; margin: 0; color: #333; }
@@ -20,139 +21,128 @@
         .full-width { grid-column: 1 / -1; }
 
         h1 { margin-top: 0; color: var(--primary); }
-        h2 { margin-top: 0; font-size: 1.2rem; border-bottom: 2px solid var(--light); padding-bottom: 10px; margin-bottom: 15px; display: flex; align-items: center; gap: 10px; }
-        .step-num { background: var(--primary); color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; }
+        h2 { margin-top: 0; font-size: 1.1rem; border-bottom: 2px solid var(--light); padding-bottom: 10px; margin-bottom: 15px; display: flex; align-items: center; gap: 10px; }
+        .step-num { background: var(--primary); color: white; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; }
 
-        /* DAILY TIME INPUTS (SECTION 2) */
-        .day-time-row {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 8px;
-            border-bottom: 1px solid #f0f0f0;
-            background: white;
-        }
-        .day-time-row:last-child { border-bottom: none; }
-        .day-label { width: 45px; font-weight: bold; font-size: 0.85rem; color: var(--primary); }
-        .time-group { display: flex; align-items: center; gap: 5px; transition: opacity 0.2s; }
-        .time-group.disabled { opacity: 0.15; pointer-events: none; filter: grayscale(1); }
-        .time-input { width: 70px; padding: 5px; border: 1px solid #ccc; border-radius: 4px; font-size: 0.85rem; text-align: center; }
+        .day-selection-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); gap: 8px; padding: 10px; background: #fff; border-radius: 6px; }
+        .day-checkbox-item { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px; border: 1px solid #eee; border-radius: 6px; cursor: pointer; }
+        .day-label { font-weight: bold; font-size: 0.75rem; color: var(--primary); }
 
-        /* BUTTONS & FORMS */
-        input, select { padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+        input, select { padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem; }
         .btn { padding: 10px 16px; border-radius: 4px; border: none; cursor: pointer; font-weight: bold; color: white; transition: opacity 0.2s; }
         .btn:hover { opacity: 0.9; }
         .btn-primary { background: var(--primary); }
         .btn-success { background: var(--success); }
-        .btn-warning { background: #f39c12; }
+        .btn-warning { background: var(--warning); }
         .btn-danger { background: var(--danger); }
-        .btn-x { background: #e74c3c; color: white; border: none; border-radius: 4px; cursor: pointer; padding: 4px 8px; font-size: 12px; }
+        
+        .btn-x { background: #e74c3c; color: white; border: none; border-radius: 4px; cursor: pointer; padding: 4px 8px; font-size: 12px; font-weight: bold; }
+        
+        .staff-item { display: flex; justify-content: space-between; align-items: center; padding: 8px; border-bottom: 1px solid #eee; font-size: 0.9rem; }
+        .staff-days { font-size: 0.7rem; color: #666; }
 
-        /* STAFF LIST */
-        .staff-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #eee; }
-        .staff-info { font-size: 0.9rem; }
-        .staff-days { font-size: 0.75rem; color: #666; margin-top: 2px; }
-
-        /* ROSTER TABLE */
         .table-wrapper { overflow-x: auto; border-radius: 8px; border: 1px solid #ddd; }
-        table { width: 100%; border-collapse: collapse; table-layout: fixed; min-width: 1000px; }
-        th, td { border: 1px solid #ddd; padding: 12px; text-align: center; vertical-align: top; }
-        th { background: var(--primary); color: white; font-weight: 600; text-transform: uppercase; font-size: 0.8rem; letter-spacing: 0.05em; }
+        table { width: 100%; border-collapse: collapse; table-layout: fixed; min-width: 1100px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: center; vertical-align: top; }
+        th { background: var(--primary); color: white; font-weight: 600; font-size: 0.75rem; }
 
-        .roster-loc { font-weight: bold; font-size: 1rem; color: var(--primary); }
-        .roster-time { font-size: 1.1rem; font-weight: 800; color: #000; margin: 4px 0; }
-        .roster-min-box { margin-top: 8px; padding: 4px; border-radius: 4px; font-size: 0.8rem; font-weight: bold; transition: background 0.3s; }
+        .roster-loc { font-weight: bold; font-size: 0.9rem; color: var(--primary); }
+        .roster-time { font-size: 1.1rem; font-weight: 800; color: #000; margin: 2px 0; }
         
-        /* Min Staff Box Colors */
-        .min-red { background: #fadbd8; color: #c0392b; border: 1px solid #e6b0aa; }
-        .min-green { background: #d5f5e3; color: #27ae60; border: 1px solid #abebc6; }
+        .coverage-badge { font-size: 0.7rem; padding: 3px 6px; border-radius: 4px; font-weight: bold; margin-bottom: 5px; display: inline-block; }
+        .cov-ok { background: #d5f5e3; color: #27ae60; }
+        .cov-fail { background: #fadbd8; color: #c0392b; }
 
-        /* UPDATED: Grey Assignment Card */
-        .assignment-card { 
-            background: #f8f9fa; 
-            border: 1px solid #e2e6ea; 
-            padding: 10px; 
-            margin-bottom: 8px; 
-            border-radius: 6px; 
-            position: relative; 
-            text-align: left; 
-            box-shadow: 0 1px 2px rgba(0,0,0,0.05); 
-        }
-        .guard-name { font-weight: bold; font-size: 0.85rem; display: block; margin-bottom: 2px; color: #333; }
-        .sor-num { font-size: 0.75rem; color: #555; display: block; margin-bottom: 4px; font-family: monospace; }
-        .meal-link { color: #d35400; font-weight: bold; cursor: pointer; font-size: 0.75rem; text-decoration: underline; }
-        .btn-rem-assign { position: absolute; top: 4px; right: 4px; color: #ccc; cursor: pointer; font-weight: bold; font-size: 14px; border: none; background: none; }
-        .btn-rem-assign:hover { color: #e74c3c; }
+        .assignment-card { background: #f8f9fa; border: 1px solid #e2e6ea; padding: 8px; margin-bottom: 5px; border-radius: 6px; position: relative; text-align: left; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+        .guard-name { font-weight: bold; font-size: 0.8rem; display: block; color: #333; }
+        .sor-num { font-size: 0.7rem; color: #2980b9; display: block; font-family: monospace; font-weight: bold; margin-top: 2px; }
+        .meal-link { color: #d35400; font-weight: bold; cursor: pointer; font-size: 0.7rem; text-decoration: underline; display: block; margin-top: 4px; }
+        .btn-rem-assign { position: absolute; top: 4px; right: 4px; color: #ccc; cursor: pointer; border: none; background: none; font-size: 14px; padding: 0; font-weight: bold; }
+        .btn-rem-assign:hover { color: var(--danger); }
+
+        .add-btn-cell { border: 2px dashed #ddd; cursor: pointer; padding: 10px; margin-top: 5px; border-radius: 6px; color: #bbb; font-size: 1.4rem; transition: all 0.2s; }
+        .add-btn-cell:hover { border-color: var(--accent); color: var(--accent); background: #fff; }
         
-        .add-btn-cell { background: #f8f9fa; border: 2px dashed #ddd; cursor: pointer; padding: 10px; margin-top: 5px; border-radius: 6px; font-size: 1.4rem; color: #bbb; transition: all 0.2s; }
-        .add-btn-cell:hover { background: #fff; border-color: var(--accent); color: var(--accent); box-shadow: inset 0 0 5px rgba(0,0,0,0.05); }
-
-        /* MODAL */
         #modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); justify-content:center; align-items:center; z-index:9999; backdrop-filter: blur(2px); }
         .modal-content { background:white; padding:25px; border-radius:12px; width:340px; box-shadow: 0 20px 40px rgba(0,0,0,0.3); }
-        .modal-title { margin-top:0; font-size: 1.2rem; color: var(--primary); margin-bottom: 15px; }
-        #modalCancelBtn { width:100%; margin-top:10px; border:none; background:none; cursor:pointer; color:#999; font-weight:bold; }
     </style>
 </head>
 <body>
     <div class="container">
-        <!-- UPDATED TITLE -->
         <h1>DetailPlanner</h1>
 
         <div class="grid-2-col">
             <!-- 1. LOCATIONS -->
             <div class="card">
                 <h2><span class="step-num">1</span> Locations</h2>
-                <div style="display:flex; gap:10px; margin-bottom:15px;">
-                    <input type="text" id="locInput" placeholder="Location Name (e.g. Front Gate)" style="flex:1;">
+                <div style="display:flex; gap:10px;">
+                    <input type="text" id="locInput" placeholder="Location Name (e.g. Main Gate)" style="flex:1;">
                     <button onclick="addLocation()" class="btn btn-primary">Add</button>
                 </div>
-                <div id="locList" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
+                <div id="locList" style="display:flex; flex-wrap:wrap; gap:8px; margin-top:10px;"></div>
             </div>
 
-            <!-- 2. STAFF DATABASE (UPDATED WITH SOR INPUT) -->
+            <!-- 2. STAFF -->
             <div class="card">
                 <h2><span class="step-num">2</span> Staff Database</h2>
                 <div style="display:flex; flex-direction:column; gap:10px;">
                     <div style="display:flex; gap:5px;">
-                        <select id="staffType" style="width: 90px;"><option value="Civilian">Civilian</option><option value="LE">LE (Law Enforcement)</option><option value="LP">LP (Loss Prevention)</option></select>
-                        <input type="text" id="staffSOR" placeholder="SOR #" style="width: 80px;">
+                        <select id="staffType"><option>Civilian</option><option>LE</option><option>LP</option></select>
                         <input type="text" id="staffLast" placeholder="Last Name" style="flex:1;">
                         <input type="text" id="staffFirst" placeholder="First Name" style="flex:1;">
                     </div>
-                    
-                    <div style="background:#fcfcfc; padding:12px; border:1px solid #eee; border-radius:6px;">
-                        <label style="font-weight:bold; font-size:0.8rem; color:#888; display:block; margin-bottom:10px; text-transform:uppercase; letter-spacing:0.03em;">Daily Shifts & Availability:</label>
-                        <div id="dailyScheduleInputs">
-                            <!-- JS Dynamically Generates Days -->
-                        </div>
+                    <div id="dailyScheduleInputs" class="day-selection-grid"></div>
+                    <button onclick="addStaff()" class="btn btn-success">Save Staff Member</button>
+                </div>
+                <div id="staffList" style="margin-top:10px; max-height:150px; overflow-y:auto; border-top: 1px solid #eee;"></div>
+            </div>
+        </div>
+
+        <div class="grid-2-col">
+            <!-- 3. SLOTS -->
+            <div class="card">
+                <h2><span class="step-num">3</span> Time Slots (Shifts)</h2>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                    <select id="slotLoc" style="grid-column: span 2;"></select>
+                    <div style="display:flex; align-items:center; gap:5px;">
+                        <label style="font-size:0.8rem; min-width:35px;">Start:</label>
+                        <input type="number" id="slotStart" placeholder="0000" style="flex:1;">
                     </div>
-
-                    <button onclick="addStaff()" class="btn btn-success" style="width: 100%;">Save Staff Member</button>
+                    <div style="display:flex; align-items:center; gap:5px;">
+                        <label style="font-size:0.8rem; min-width:35px;">End:</label>
+                        <input type="number" id="slotEnd" placeholder="2359" style="flex:1;">
+                    </div>
+                    <button onclick="addSlot()" class="btn btn-primary" style="grid-column: span 2;">Add Shift Slot</button>
                 </div>
-                <div id="staffList" style="margin-top:15px; max-height: 220px; overflow-y: auto; border-top: 1px solid #f0f0f0;"></div>
+            </div>
+
+            <!-- 4. MIN STAFF -->
+            <div class="card">
+                <h2><span class="step-num">4</span> Min Staff Requirements</h2>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                    <select id="minLoc" style="grid-column: span 2;"></select>
+                    <div style="display:flex; align-items:center; gap:5px; grid-column: span 2;">
+                        <span style="font-size:0.8rem;">Guards Needed:</span>
+                        <input type="number" id="minCount" placeholder="1" min="1" value="1" style="flex:1;">
+                    </div>
+                    <div style="display:flex; align-items:center; gap:5px;">
+                        <label style="font-size:0.8rem; min-width:35px;">Start:</label>
+                        <input type="number" id="minStart" placeholder="0000" style="flex:1;">
+                    </div>
+                    <div style="display:flex; align-items:center; gap:5px;">
+                        <label style="font-size:0.8rem; min-width:35px;">End:</label>
+                        <input type="number" id="minEnd" placeholder="2359" style="flex:1;">
+                    </div>
+                    <button onclick="addMinRequirement()" class="btn btn-warning" style="grid-column: span 2; margin-top:5px;">Add Requirement</button>
+                </div>
+                <div id="minReqList" style="margin-top:10px; font-size:0.75rem; color:#666;"></div>
             </div>
         </div>
 
-        <!-- 3. SLOTS -->
-        <div class="card">
-            <h2><span class="step-num">3</span> Time Slots</h2>
-            <div style="display:flex; gap:10px; flex-wrap: wrap;">
-                <select id="slotLoc" style="flex:2; min-width: 200px;"></select>
-                <input type="number" id="slotStart" placeholder="Start (0000)" style="width:110px;">
-                <input type="number" id="slotEnd" placeholder="End (2359)" style="width:110px;">
-                <div style="display:flex; align-items:center; gap:5px;">
-                    <span style="font-size: 0.8rem; font-weight: bold;">Min:</span>
-                    <input type="number" id="slotMin" placeholder="0" style="width:60px;">
-                </div>
-                <button onclick="addSlot()" class="btn btn-primary">Add Slot</button>
-            </div>
-        </div>
-
-        <!-- 4. ROSTER (RETAINED ALL BUTTONS) -->
+        <!-- 5. ROSTER -->
         <div class="card full-width">
-            <div style="display:flex; justify-content:space-between; align-items: center; margin-bottom: 20px;">
-                <h2 style="margin-bottom:0; border:none; padding:0;"><span class="step-num">4</span> Weekly Schedule</h2>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                <h2 style="margin-bottom:0; border:none; padding:0;"><span class="step-num">5</span> Weekly Schedule</h2>
                 <div style="display:flex; gap:10px;">
                     <button onclick="autoCalcMeals()" class="btn btn-warning">Auto-Calc Meals</button>
                     <button onclick="exportCSV()" class="btn btn-success">Export CSV</button>
@@ -162,7 +152,7 @@
             <div class="table-wrapper">
                 <table id="rosterTable">
                     <thead>
-                        <tr><th style="width:200px;">Location & Time</th><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Sat</th><th>Sun</th></tr>
+                        <tr><th style="width:200px;">Location & Shift</th><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Sat</th><th>Sun</th></tr>
                     </thead>
                     <tbody></tbody>
                 </table>
@@ -170,20 +160,20 @@
         </div>
     </div>
 
-    <!-- GENERIC MODAL -->
+    <!-- MODAL -->
     <div id="modal">
         <div class="modal-content">
-            <h3 id="modalTitle" class="modal-title">Title</h3>
+            <h3 id="modalTitle" style="margin-top:0;">Title</h3>
             <div id="modalContent"></div>
             <button id="modalSave" class="btn btn-primary" style="width:100%; margin-top:20px;">Confirm</button>
-            <button id="modalCancelBtn" onclick="closeModal()">Cancel</button>
+            <button onclick="closeModal()" style="width:100%; border:none; background:none; cursor:pointer; color:#999; margin-top:10px; font-weight:bold;">Cancel</button>
         </div>
     </div>
 
     <script>
-        const STORAGE_KEY = 'detail_planner_v5_sor';
+        const STORAGE_KEY = 'detail_planner_v8_final';
         const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-        let appData = { locations: [], staff: [], slots: [], roster: [] };
+        let appData = { locations: [], staff: [], slots: [], minRequirements: [], roster: [] };
 
         document.addEventListener('DOMContentLoaded', () => {
             const saved = localStorage.getItem(STORAGE_KEY);
@@ -194,67 +184,22 @@
 
         function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(appData)); }
 
-        // --- CUSTOM MODAL HELPERS ---
-        // These replace alert() and confirm()
-        function showCustomAlert(title, message) {
-            const modal = document.getElementById('modal');
-            document.getElementById('modalTitle').innerText = title;
-            document.getElementById('modalContent').innerHTML = `<p>${message}</p>`;
-            const saveBtn = document.getElementById('modalSave');
-            saveBtn.innerText = "OK";
-            saveBtn.onclick = closeModal;
-            saveBtn.style.display = 'block';
-            document.getElementById('modalCancelBtn').style.display = 'none';
-            modal.style.display = 'flex';
-        }
-
-        function showCustomConfirm(title, message, confirmText, onConfirm) {
-            const modal = document.getElementById('modal');
-            document.getElementById('modalTitle').innerText = title;
-            document.getElementById('modalContent').innerHTML = `<p>${message}</p>`;
-            const saveBtn = document.getElementById('modalSave');
-            saveBtn.innerText = confirmText;
-            saveBtn.style.display = 'block';
-            saveBtn.onclick = () => {
-                onConfirm();
-                closeModal();
-            };
-            document.getElementById('modalCancelBtn').style.display = 'block';
-            modal.style.display = 'flex';
-        }
-
-        function closeModal() {
-            document.getElementById('modal').style.display = 'none';
-        }
-
-        // Generate the Section 2 Day-by-Day inputs
         function initDailyInputs() {
-            const container = document.getElementById('dailyScheduleInputs');
-            container.innerHTML = days.map(day => `
-                <div class="day-time-row">
-                    <input type="checkbox" id="check-${day}" onchange="toggleDayRow('${day}')" style="cursor:pointer; width:16px; height:16px;">
+            document.getElementById('dailyScheduleInputs').innerHTML = days.map(day => `
+                <label class="day-checkbox-item">
                     <span class="day-label">${day}</span>
-                    <div id="group-${day}" class="time-group disabled">
-                        <input type="number" id="start-${day}" class="time-input" placeholder="0000" title="Start Time">
-                        <span style="color:#ccc;">to</span>
-                        <input type="number" id="end-${day}" class="time-input" placeholder="2359" title="End Time">
-                    </div>
-                </div>
+                    <input type="checkbox" id="check-${day}">
+                </label>
             `).join('');
         }
-
-        window.toggleDayRow = (day) => {
-            const isChecked = document.getElementById(`check-${day}`).checked;
-            document.getElementById(`group-${day}`).classList.toggle('disabled', !isChecked);
-        };
 
         function renderAll() {
             renderLocations();
             renderStaff();
+            renderMinReqs();
             renderRoster();
         }
 
-        // --- 1. LOCATIONS ---
         function addLocation() {
             const val = document.getElementById('locInput').value.trim();
             if (val) {
@@ -264,386 +209,305 @@
             }
         }
         function delLoc(id) { appData.locations = appData.locations.filter(l => l.id !== id); save(); renderAll(); }
+
         function renderLocations() {
             const list = document.getElementById('locList');
-            const slotSelect = document.getElementById('slotLoc');
-            list.innerHTML = ''; slotSelect.innerHTML = '';
+            const s1 = document.getElementById('slotLoc');
+            const s2 = document.getElementById('minLoc');
+            list.innerHTML = ''; s1.innerHTML = ''; s2.innerHTML = '';
             appData.locations.forEach(l => {
-                list.innerHTML += `<div style="background:#eef2f7; padding:6px 12px; border-radius:20px; border:1px solid #d1d9e6; font-size:0.8rem; font-weight:600; color:#4a5568; display:flex; align-items:center; gap:6px;">${l.name} <button onclick="delLoc(${l.id})" style="border:none; background:none; cursor:pointer; color:#e74c3c; font-weight:bold; font-size:16px;">×</button></div>`;
-                slotSelect.add(new Option(l.name, l.name));
+                list.innerHTML += `<div style="background:#eef2f7; padding:6px 12px; border-radius:20px; border:1px solid #d1d9e6; font-size:0.75rem; font-weight:600; color:#4a5568; display:flex; align-items:center; gap:6px;">${l.name} <span onclick="delLoc(${l.id})" style="color:red; cursor:pointer; font-weight:bold;">×</span></div>`;
+                s1.add(new Option(l.name, l.name));
+                s2.add(new Option(l.name, l.name));
             });
         }
 
-        // --- 2. STAFF ---
         function addStaff() {
             const last = document.getElementById('staffLast').value.trim();
             const first = document.getElementById('staffFirst').value.trim();
-            const sor = document.getElementById('staffSOR').value.trim(); // Capture SOR
-
-            if (!last || !first) return showCustomAlert("Error", "First and Last name required.");
-
-            let schedule = {};
-            let missingTime = false;
-
-            days.forEach(d => {
-                if(document.getElementById(`check-${d}`).checked) {
-                    const sVal = document.getElementById(`start-${d}`).value;
-                    const eVal = document.getElementById(`end-${d}`).value;
-                    
-                    if(sVal === "" || eVal === "") {
-                        missingTime = true;
-                        // Default to 0000 - 2359 (All Day) in memory for now
-                        schedule[d] = { start: 0, end: 2359 };
-                    } else {
-                        schedule[d] = {
-                            start: parseInt(sVal),
-                            end: parseInt(eVal)
-                        };
-                    }
-                }
-            });
-
-            if (Object.keys(schedule).length === 0) return showCustomAlert("Error", "Select at least one day of availability.");
-
-            // LOGIC SPLIT: If missing times, ask user. Else save immediately.
-            if(missingTime) {
-                showCustomConfirm(
-                    "Missing Times",
-                    "One or more selected days have missing start/end times.<br><br>Click <strong>Save with Defaults</strong> to set these days to ALL DAY (0000-2359).<br>Click Cancel to go back and edit.",
-                    "Save with Defaults",
-                    () => executeSaveStaff(last, first, sor, schedule)
-                );
-            } else {
-                executeSaveStaff(last, first, sor, schedule);
-            }
-        }
-
-        function executeSaveStaff(last, first, sor, schedule) {
-            appData.staff.push({
-                id: Date.now(),
-                name: `${last}, ${first}`,
-                type: document.getElementById('staffType').value,
-                sor: sor, // Save SOR
-                schedule
-            });
-
+            if (!last || !first) return alert("First and Last name required.");
+            const availableDays = days.filter(d => document.getElementById(`check-${d}`).checked);
+            if (availableDays.length === 0) return alert("Select availability.");
+            appData.staff.push({ id: Date.now(), name: `${last}, ${first}`, type: document.getElementById('staffType').value, availableDays });
             document.getElementById('staffLast').value = '';
             document.getElementById('staffFirst').value = '';
-            document.getElementById('staffSOR').value = '';
-            // Reset checkboxes and inputs
-            days.forEach(d => { 
-                document.getElementById(`check-${d}`).checked = false;
-                document.getElementById(`group-${d}`).classList.add('disabled');
-                document.getElementById(`start-${d}`).value = '';
-                document.getElementById(`end-${d}`).value = '';
-            });
-
             save(); renderStaff();
         }
 
         function renderStaff() {
             const list = document.getElementById('staffList');
-            list.innerHTML = '';
-            appData.staff.sort((a,b) => a.name.localeCompare(b.name)).forEach(s => {
-                const dayStr = Object.entries(s.schedule).map(([day, times]) => {
-                    const st = String(times.start).padStart(4, '0');
-                    const en = String(times.end).padStart(4, '0');
-                    return `${day} (${st}-${en})`;
-                }).join(', ');
-
-                const sorDisplay = s.sor ? `<span style="color:#555; margin-left:5px;">(SOR: ${s.sor})</span>` : '';
-
-                list.innerHTML += `
-                    <div class="staff-item">
-                        <div class="staff-info">
-                            <strong>${s.name}</strong> ${sorDisplay} <span style="color:#999; font-size:0.7rem;">[${s.type}]</span>
-                            <div class="staff-days">Working: ${dayStr}</div>
-                        </div>
-                        <button class="btn-x" onclick="delStaff(${s.id})">Remove</button>
-                    </div>`;
-            });
+            list.innerHTML = appData.staff.map(s => `
+                <div class="staff-item">
+                    <div><b>${s.name}</b> <span class="staff-days">[${s.type}] Days: ${s.availableDays.join(',')}</span></div>
+                    <button class="btn-x" onclick="delStaff(${s.id})">×</button>
+                </div>
+            `).join('');
         }
         function delStaff(id) { appData.staff = appData.staff.filter(s => s.id !== id); save(); renderStaff(); }
 
-        // --- 3. SLOTS ---
         function addSlot() {
             const loc = document.getElementById('slotLoc').value;
-            if(!loc) return showCustomAlert("Error", "Add a location first.");
+            if(!loc) {
+                const modal = document.getElementById('modal');
+                document.getElementById('modalTitle').innerText = "Notice";
+                document.getElementById('modalContent').innerHTML = `<p style="font-size:0.9rem;">Add a location first</p>`;
+                document.getElementById('modalSave').style.display = 'none';
+                modal.style.display = 'flex';
+                return;
+            }
+            const startVal = document.getElementById('slotStart').value || '0';
+            const endVal = document.getElementById('slotEnd').value || '2359';
+            
             appData.slots.push({
                 id: Date.now(),
                 loc,
-                start: parseInt(document.getElementById('slotStart').value || 0),
-                end: parseInt(document.getElementById('slotEnd').value || 0),
-                min: parseInt(document.getElementById('slotMin').value || 1)
+                start: parseInt(startVal),
+                end: parseInt(endVal)
             });
-            save(); renderRoster();
+            
+            save(); 
+            renderRoster();
+            
+            // Replaced alert with custom modal
+            const modal = document.getElementById('modal');
+            document.getElementById('modalTitle').innerText = "Success";
+            document.getElementById('modalContent').innerHTML = `<p style="font-size:0.9rem;">Shift Slot added for ${loc} (${startVal.padStart(4,'0')}-${endVal.padStart(4,'0')})</p>`;
+            document.getElementById('modalSave').style.display = 'none';
+            modal.style.display = 'flex';
         }
-        function delSlot(id) { appData.slots = appData.slots.filter(s => s.id !== id); save(); renderRoster(); }
+        
+        // Replaced confirm with custom modal
+        window.delSlot = (id) => { 
+            const modal = document.getElementById('modal');
+            document.getElementById('modalTitle').innerText = "Confirm Deletion";
+            document.getElementById('modalContent').innerHTML = `<p style="font-size:0.9rem;">Delete this entire shift slot and all its assignments?</p>`;
+            document.getElementById('modalSave').style.display = 'block';
+            document.getElementById('modalSave').onclick = () => {
+                appData.slots = appData.slots.filter(s => s.id !== id); 
+                appData.roster = appData.roster.filter(r => r.slotId !== id); 
+                save(); 
+                renderRoster(); 
+                closeModal();
+            };
+            modal.style.display = 'flex';
+        };
 
-        // --- 4. ROSTER ---
+        function addMinRequirement() {
+            const loc = document.getElementById('minLoc').value;
+            if(!loc) return;
+            const count = parseInt(document.getElementById('minCount').value || 1);
+            if (count < 1) return alert("Guard count must be at least 1.");
+
+            appData.minRequirements.push({
+                id: Date.now(),
+                loc,
+                count: count,
+                start: parseInt(document.getElementById('minStart').value || 0),
+                end: parseInt(document.getElementById('minEnd').value || 2359)
+            });
+            save(); renderMinReqs(); renderRoster();
+        }
+        function delMin(id) { appData.minRequirements = appData.minRequirements.filter(m => m.id !== id); save(); renderMinReqs(); renderRoster(); }
+
+        function renderMinReqs() {
+            document.getElementById('minReqList').innerHTML = appData.minRequirements.map(m => `
+                <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+                    <span>${m.loc}: ${m.count} Guards (${m.start}-${m.end})</span>
+                    <span onclick="delMin(${m.id})" style="color:red; cursor:pointer;">[x]</span>
+                </div>
+            `).join('');
+        }
+
         function renderRoster() {
             const tbody = document.querySelector('#rosterTable tbody');
             tbody.innerHTML = '';
-
-            // UPDATED: Sort by LOCATION first, then by START TIME
-            const sortedSlots = [...appData.slots].sort((a,b) => a.loc.localeCompare(b.loc) || a.start - b.start);
+            const sorted = [...appData.slots].sort((a,b) => a.loc.localeCompare(b.loc) || a.start - b.start);
             
-            let lastLoc = null;
-
-            sortedSlots.forEach(slot => {
+            sorted.forEach(slot => {
                 const tr = document.createElement('tr');
-                
-                // UPDATED: Add heavy border if location changes (grouping visualizer)
-                if (lastLoc && slot.loc !== lastLoc) {
-                    tr.style.borderTop = "4px solid #2c3e50";
-                }
-                lastLoc = slot.loc;
-                
                 tr.innerHTML = `<td style="background:#fff; text-align:left;">
                     <div class="roster-loc">${slot.loc}</div>
                     <div class="roster-time">${String(slot.start).padStart(4,'0')} - ${String(slot.end).padStart(4,'0')}</div>
-                    <div id="min-stat-${slot.id}" class="roster-min-box">Loading...</div>
-                    <button onclick="delSlot(${slot.id})" style="border:none; background:none; color:#F00; cursor:pointer; font-size:10px; margin-top:5px; padding:0;">[Delete Slot]</button>
+                    <button onclick="window.delSlot(${slot.id})" style="border:none; background:none; color:red; cursor:pointer; font-size:10px; padding:0; text-decoration:underline;">Delete Slot</button>
                 </td>`;
 
                 days.forEach(day => {
                     const td = document.createElement('td');
                     const assigned = appData.roster.filter(r => r.slotId === slot.id && r.day === day);
                     
-                    assigned.forEach(a => {
-                        // Look up guard to get SOR
-                        const staffMember = appData.staff.find(s => s.name === a.guard);
-                        const sorHtml = (staffMember && staffMember.sor) ? `<span class="sor-num">SOR: ${staffMember.sor}</span>` : '';
+                    const isMet = checkCoverage(slot.loc, day);
+                    td.innerHTML += `<div class="coverage-badge ${isMet ? 'cov-ok' : 'cov-fail'}">${isMet ? 'Staffed' : 'Understaffed'}</div>`;
 
+                    assigned.forEach(a => {
+                        const sorHtml = a.sor ? `<span class="sor-num">SOR: ${a.sor}</span>` : '';
                         td.innerHTML += `
                             <div class="assignment-card">
                                 <span class="guard-name">${a.guard}</span>
                                 ${sorHtml}
-                                <span class="meal-link" onclick="openMealModal(${a.id})">Meal: ${a.meal}</span>
+                                <span class="meal-link" onclick="openMealModal(${a.id})">Meal: ${a.meal || 'Pending'}</span>
                                 <button class="btn-rem-assign" onclick="remAssign(${a.id})">×</button>
                             </div>`;
                     });
-
                     td.innerHTML += `<div class="add-btn-cell" onclick="openAssignModal(${slot.id}, '${day}')">+</div>`;
                     tr.appendChild(td);
                 });
                 tbody.appendChild(tr);
-                updateMinStaffBadge(slot.id);
             });
         }
 
-        function updateMinStaffBadge(slotId) {
-            const slot = appData.slots.find(s => s.id === slotId);
-            const badge = document.getElementById(`min-stat-${slotId}`);
-            if(!badge) return;
-            
-            const daysMet = days.filter(d => appData.roster.filter(r => r.slotId === slotId && r.day === d).length >= slot.min);
-            const allMet = daysMet.length === 7;
-
-            badge.className = `roster-min-box ${allMet ? 'min-green' : 'min-red'}`;
-            badge.innerText = allMet ? `Staffed (${slot.min})` : `Min Staff: ${slot.min}`;
+        function checkCoverage(locName, day) {
+            const reqs = appData.minRequirements.filter(m => m.loc === locName);
+            if (reqs.length === 0) return true;
+            const dayAssignments = appData.roster.filter(r => r.day === day);
+            for (let t = 0; t < 2400; t += 15) {
+                if (t % 100 >= 60) continue;
+                const activeReq = reqs.find(m => t >= m.start && t < m.end);
+                if (!activeReq) continue;
+                const onDuty = dayAssignments.filter(a => {
+                    const s = appData.slots.find(x => x.id === a.slotId);
+                    if (!s || s.loc !== locName) return false;
+                    const working = (t >= s.start && t < s.end);
+                    if (!working) return false;
+                    if (a.meal && a.meal.includes('-')) {
+                        const [mS, mE] = a.meal.split('-').map(Number);
+                        if (t >= mS && t < mE) return false;
+                    }
+                    return true;
+                }).length;
+                if (onDuty < activeReq.count) return false;
+            }
+            return true;
         }
 
         window.openAssignModal = (slotId, day) => {
             const slot = appData.slots.find(s => s.id === slotId);
-            const modal = document.getElementById('modal');
-            const content = document.getElementById('modalContent');
-            
-            // Get all assignments for this day
-            const dayAssignments = appData.roster.filter(r => r.day === day);
+            const currentlyAssignedNames = appData.roster
+                .filter(r => r.slotId === slotId && r.day === day)
+                .map(r => r.guard);
 
-            // ELIGIBILITY LOGIC:
-            // 1. Staff must have the 'day' in their schedule.
-            // 2. Staff shift start must be <= slot start.
-            // 3. Staff shift end must be >= slot end.
-            // 4. Staff must NOT be assigned to another overlapping slot on the same day.
-            const eligible = appData.staff.filter(s => {
-                const daySched = s.schedule[day];
-                if (!daySched) return false;
-                
-                // Check working hours
-                if (daySched.start > slot.start || daySched.end < slot.end) return false;
-
-                // Check for overlapping assignments
-                const isDoubleBooked = dayAssignments.some(r => {
-                    if (r.guard !== s.name) return false; // Not this guard
-                    const rSlot = appData.slots.find(sl => sl.id === r.slotId);
-                    if (!rSlot) return false;
-
-                    // Overlap formula: StartA < EndB && EndA > StartB
-                    return (slot.start < rSlot.end) && (slot.end > rSlot.start);
-                });
-
-                return !isDoubleBooked;
-            });
+            const eligible = appData.staff.filter(s => 
+                s.availableDays.includes(day) && 
+                !currentlyAssignedNames.includes(s.name)
+            );
 
             if (eligible.length === 0) {
-                content.innerHTML = `<div style="padding:15px; background:#fff5f5; border:1px solid #feb2b2; border-radius:6px; color:#c53030; font-size:0.85rem;">
-                    No eligible staff found for <strong>${day} ${slot.start}-${slot.end}</strong>.<br>
-                    <span style="font-size:0.75rem; color:#666;">(Check daily availability or existing overlapping assignments)</span>
-                </div>`;
+                const message = currentlyAssignedNames.length > 0 
+                    ? "All eligible staff available for this day are already assigned to this shift."
+                    : "No staff are marked as available for this day.";
+                const modal = document.getElementById('modal');
+                document.getElementById('modalTitle').innerText = "Notice";
+                document.getElementById('modalContent').innerHTML = `<p style="font-size:0.9rem;">${message}</p>`;
                 document.getElementById('modalSave').style.display = 'none';
-            } else {
-                document.getElementById('modalSave').style.display = 'block';
-                document.getElementById('modalSave').innerText = "Confirm Assignment";
-                document.getElementById('modalSave').onclick = () => {
-                    const guard = document.getElementById('assignStaff').value;
-                    appData.roster.push({ id: Date.now(), slotId, day, guard, meal: "Pending" });
-                    save(); renderRoster(); closeModal();
-                };
-                content.innerHTML = `
-                    <p style="font-size:0.8rem; color:#666; margin-bottom:12px;">Qualified staff for ${day} @ ${slot.start}-${slot.end}:</p>
-                    <select id="assignStaff" style="width:100%; padding:12px; font-size:1rem; border-radius:8px; border:2px solid #eee;">
-                        ${eligible.map(e => `<option value="${e.name}">${e.name} (${e.type})</option>`).join('')}
-                    </select>
-                `;
+                modal.style.display = 'flex';
+                return;
             }
-            
-            document.getElementById('modalCancelBtn').style.display = 'block';
-            modal.style.display = 'flex';
+
+            const modal = document.getElementById('modal');
+            document.getElementById('modalSave').style.display = 'block';
             document.getElementById('modalTitle').innerText = `Assigning ${day}`;
+            document.getElementById('modalContent').innerHTML = `
+                <label style="font-size:0.8rem; font-weight:bold;">Select Staff:</label>
+                <select id="assignStaff" style="width:100%; margin-bottom:15px;">
+                    ${eligible.map(e => `<option value="${e.name}">${e.name} (${e.type})</option>`).join('')}
+                </select>
+                <label style="font-size:0.8rem; font-weight:bold;">SOR # (Optional):</label>
+                <input type="text" id="assignSOR" placeholder="Enter SOR #" style="width:94%;">
+            `;
+            document.getElementById('modalSave').onclick = () => {
+                appData.roster.push({ 
+                    id: Date.now(), 
+                    slotId, 
+                    day, 
+                    guard: document.getElementById('assignStaff').value, 
+                    sor: document.getElementById('assignSOR').value.trim(),
+                    meal: 'Pending' 
+                });
+                save(); renderRoster(); closeModal();
+            };
+            modal.style.display = 'flex';
         };
+
+        window.autoCalcMeals = () => {
+            const roster = [...appData.roster];
+            roster.forEach(r => {
+                const s = appData.slots.find(x => x.id === r.slotId);
+                if (!s) return;
+                let duration = s.end - s.start;
+                if (s.end < s.start) duration = (2400 - s.start) + s.end;
+                const hours = duration / 100;
+                const breakMins = hours >= 7 ? 60 : 30;
+
+                let mealAssigned = false;
+                const preferredStart = s.start + 330;
+
+                for (let offset = -60; offset < 300; offset += 15) {
+                    const testStart = (preferredStart + offset) % 2400;
+                    const testEnd = (testStart + (breakMins === 60 ? 100 : 30)) % 2400;
+                    const originalMeal = r.meal;
+                    r.meal = `${String(testStart).padStart(4,'0')}-${String(testEnd).padStart(4,'0')}`;
+                    
+                    if (checkCoverageAtTimeRange(s.loc, r.day, testStart, testEnd)) {
+                        mealAssigned = true;
+                        break;
+                    } else {
+                        r.meal = originalMeal;
+                    }
+                }
+                if (!mealAssigned) r.meal = "No Window";
+            });
+            save(); renderRoster();
+        };
+
+        function checkCoverageAtTimeRange(loc, day, start, end) {
+            for (let t = start; t < end; t += 15) {
+                if (t % 100 >= 60) continue;
+                const req = appData.minRequirements.find(m => m.loc === loc && t >= m.start && t < m.end);
+                if (!req) continue;
+                const onDuty = appData.roster.filter(a => {
+                    if (a.day !== day) return false;
+                    const s = appData.slots.find(x => x.id === a.slotId);
+                    if (!s || s.loc !== loc || t < s.start || t >= s.end) return false;
+                    if (a.meal && a.meal.includes('-')) {
+                        const [mS, mE] = a.meal.split('-').map(Number);
+                        if (t >= mS && t < mE) return false;
+                    }
+                    return true;
+                }).length;
+                if (onDuty < req.count) return false;
+            }
+            return true;
+        }
 
         window.openMealModal = (id) => {
             const r = appData.roster.find(x => x.id === id);
             const modal = document.getElementById('modal');
-            document.getElementById('modalTitle').innerText = `Adjust Meal Period`;
+            document.getElementById('modalSave').style.display = 'block';
+            document.getElementById('modalTitle').innerText = `Meal for ${r.guard}`;
             document.getElementById('modalContent').innerHTML = `
-                <input id="newMeal" value="${r.meal}" style="width:100%; padding:12px; border-radius:8px; border:2px solid #eee; font-size:1rem;">
-                <p style="font-size:0.7rem; color:#999; margin-top:8px;">Format: HHMM-HHMM</p>
+                <input id="newMeal" value="${r.meal}" style="width:100%; font-size:1.1rem; padding:10px;">
+                <p style="font-size:0.7rem; color:#666; margin-top:5px;">Format: HHMM-HHMM</p>
             `;
-            const saveBtn = document.getElementById('modalSave');
-            saveBtn.style.display = 'block';
-            saveBtn.innerText = "Save";
-            modal.style.display = 'flex';
-            saveBtn.onclick = () => {
+            document.getElementById('modalSave').onclick = () => {
                 r.meal = document.getElementById('newMeal').value;
                 save(); renderRoster(); closeModal();
             };
-            document.getElementById('modalCancelBtn').style.display = 'block';
+            modal.style.display = 'flex';
         };
 
-        window.autoCalcMeals = () => {
-            // 1. Calculate total duration per guard per day (to determine break length)
-            const guardDurations = {}; 
-            const parse = (t) => { 
-                let st = t.toString().padStart(4,'0'); 
-                return parseInt(st.substring(0,2))*60 + parseInt(st.substring(2,4)); 
-            };
-            
-            // Calculate total minutes worked per guard per day
-            appData.roster.forEach(r => {
-                const s = appData.slots.find(x => x.id === r.slotId);
-                if(!s) return;
-                const key = `${r.guard}|${r.day}`;
-                let start = parse(s.start);
-                let end = parse(s.end);
-                if(end < start) end += 1440;
-                guardDurations[key] = (guardDurations[key] || 0) + (end - start);
-            });
-
-            // 2. Group roster entries by Slot & Day to handle coverage constraints
-            const groups = {};
-            appData.roster.forEach(r => {
-                const k = `${r.slotId}|${r.day}`;
-                if(!groups[k]) groups[k] = [];
-                groups[k].push(r);
-            });
-
-            // 3. Process each group (Slot+Day)
-            Object.keys(groups).forEach(k => {
-                const entries = groups[k];
-                const [slotId, day] = k.split('|');
-                const slot = appData.slots.find(x => x.id == slotId);
-                if(!slot) return;
-
-                const minStaff = slot.min || 0;
-                const assignedCount = entries.length;
-                
-                // If we don't have enough people to cover minStaff + 1 on break, we can't schedule breaks
-                // Requirement: "min staff must be met even while another is on meal break"
-                const breakSeats = assignedCount - minStaff;
-                
-                if (breakSeats <= 0) {
-                    entries.forEach(r => r.meal = "No Coverage");
-                    return;
-                }
-
-                // Setup Timeline
-                let shiftStart = parse(slot.start);
-                let shiftEnd = parse(slot.end);
-                if(shiftEnd < shiftStart) shiftEnd += 1440;
-                
-                // Define buffer
-                const shiftLen = shiftEnd - shiftStart;
-                const buffer = shiftLen < 240 ? 15 : 60; 
-
-                // Available time tracks
-                const tracks = new Array(breakSeats).fill(shiftStart + buffer);
-
-                entries.forEach(r => {
-                    // Determine needed break length
-                    const gKey = `${r.guard}|${r.day}`;
-                    const totalWork = guardDurations[gKey] || 0;
-                    const breakLen = (totalWork >= 420) ? 60 : 30; // 7h rule
-
-                    // Find earliest available track
-                    let bestTrack = 0;
-                    for(let i=1; i<tracks.length; i++) {
-                        if (tracks[i] < tracks[bestTrack]) bestTrack = i;
-                    }
-
-                    let myStart = tracks[bestTrack];
-                    let myEnd = myStart + breakLen;
-
-                    // Validate fit
-                    if (myEnd > (shiftEnd - buffer)) {
-                        r.meal = "No Time";
-                    } else {
-                        // Format Time
-                        const toMil = (m) => {
-                            m = m % 1440;
-                            let h = Math.floor(m/60);
-                            let mn = m%60;
-                            return `${String(h).padStart(2,'0')}${String(mn).padStart(2,'0')}`;
-                        };
-                        r.meal = `${toMil(myStart)}-${toMil(myEnd)}`;
-                        
-                        // Occupy track
-                        tracks[bestTrack] = myEnd;
-                    }
-                });
-            });
-
-            save(); 
-            renderRoster();
-        };
-
+        window.closeModal = () => document.getElementById('modal').style.display = 'none';
         window.remAssign = (id) => { appData.roster = appData.roster.filter(r => r.id !== id); save(); renderRoster(); };
+        window.clearRoster = () => { if(confirm("Clear all assignments?")) { appData.roster = []; save(); renderRoster(); }};
         
-        window.clearRoster = () => { 
-            showCustomConfirm(
-                "Clear Roster", 
-                "Are you sure you want to permanently clear all assignments?", 
-                "Yes, Clear", 
-                () => { appData.roster = []; save(); renderRoster(); }
-            );
-        };
-
         window.exportCSV = () => {
-            let csv = "Location,Start,End,Day,Staff Name,SOR #,Staff Type,Meal Period\n";
+            let csv = "Location,Start,End,Day,Guard,SOR,Meal\n";
             appData.roster.forEach(r => {
                 const s = appData.slots.find(x => x.id === r.slotId);
-                const g = appData.staff.find(x => x.name === r.guard);
-                const sor = g && g.sor ? g.sor : '';
-                if(s) csv += `"${s.loc}",${s.start},${s.end},${r.day},"${r.guard}","${sor}","${g ? g.type : ''}","${r.meal}"\n`;
+                csv += `"${s.loc}",${s.start},${s.end},${r.day},"${r.guard}","${r.sor || ''}","${r.meal}"\n`;
             });
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement("a");
-            link.setAttribute("href", url);
-            link.setAttribute("download", `DetailPlanner_${new Date().toLocaleDateString().replace(/\//g,'-')}.csv`);
-            link.click();
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = 'Schedule.csv'; a.click();
         };
     </script>
 </body>
