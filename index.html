@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Security Weekly Roster</title>
+    <title>DetailPlanner</title>
     <style>
         :root {
             --primary: #2c3e50;
@@ -78,7 +78,8 @@
             text-align: left; 
             box-shadow: 0 1px 2px rgba(0,0,0,0.05); 
         }
-        .guard-name { font-weight: bold; font-size: 0.85rem; display: block; margin-bottom: 4px; color: #333; }
+        .guard-name { font-weight: bold; font-size: 0.85rem; display: block; margin-bottom: 2px; color: #333; }
+        .sor-num { font-size: 0.75rem; color: #555; display: block; margin-bottom: 4px; font-family: monospace; }
         .meal-link { color: #d35400; font-weight: bold; cursor: pointer; font-size: 0.75rem; text-decoration: underline; }
         .btn-rem-assign { position: absolute; top: 4px; right: 4px; color: #ccc; cursor: pointer; font-weight: bold; font-size: 14px; border: none; background: none; }
         .btn-rem-assign:hover { color: #e74c3c; }
@@ -95,7 +96,8 @@
 </head>
 <body>
     <div class="container">
-        <h1>Security Weekly Roster</h1>
+        <!-- UPDATED TITLE -->
+        <h1>DetailPlanner</h1>
 
         <div class="grid-2-col">
             <!-- 1. LOCATIONS -->
@@ -108,12 +110,13 @@
                 <div id="locList" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
             </div>
 
-            <!-- 2. STAFF DATABASE (DAILY TIME UPDATED) -->
+            <!-- 2. STAFF DATABASE (UPDATED WITH SOR INPUT) -->
             <div class="card">
                 <h2><span class="step-num">2</span> Staff Database</h2>
                 <div style="display:flex; flex-direction:column; gap:10px;">
                     <div style="display:flex; gap:5px;">
-                        <select id="staffType" style="width: 100px;"><option value="Civilian">Civilian</option><option value="LE">LE (Law Enforcement)</option><option value="LP">LP (Loss Prevention)</option></select>
+                        <select id="staffType" style="width: 90px;"><option value="Civilian">Civilian</option><option value="LE">LE (Law Enforcement)</option><option value="LP">LP (Loss Prevention)</option></select>
+                        <input type="text" id="staffSOR" placeholder="SOR #" style="width: 80px;">
                         <input type="text" id="staffLast" placeholder="Last Name" style="flex:1;">
                         <input type="text" id="staffFirst" placeholder="First Name" style="flex:1;">
                     </div>
@@ -178,7 +181,7 @@
     </div>
 
     <script>
-        const STORAGE_KEY = 'security_roster_v4_daily';
+        const STORAGE_KEY = 'detail_planner_v5_sor';
         const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
         let appData = { locations: [], staff: [], slots: [], roster: [] };
 
@@ -275,6 +278,8 @@
         function addStaff() {
             const last = document.getElementById('staffLast').value.trim();
             const first = document.getElementById('staffFirst').value.trim();
+            const sor = document.getElementById('staffSOR').value.trim(); // Capture SOR
+
             if (!last || !first) return showCustomAlert("Error", "First and Last name required.");
 
             let schedule = {};
@@ -306,23 +311,25 @@
                     "Missing Times",
                     "One or more selected days have missing start/end times.<br><br>Click <strong>Save with Defaults</strong> to set these days to ALL DAY (0000-2359).<br>Click Cancel to go back and edit.",
                     "Save with Defaults",
-                    () => executeSaveStaff(last, first, schedule)
+                    () => executeSaveStaff(last, first, sor, schedule)
                 );
             } else {
-                executeSaveStaff(last, first, schedule);
+                executeSaveStaff(last, first, sor, schedule);
             }
         }
 
-        function executeSaveStaff(last, first, schedule) {
+        function executeSaveStaff(last, first, sor, schedule) {
             appData.staff.push({
                 id: Date.now(),
                 name: `${last}, ${first}`,
                 type: document.getElementById('staffType').value,
+                sor: sor, // Save SOR
                 schedule
             });
 
             document.getElementById('staffLast').value = '';
             document.getElementById('staffFirst').value = '';
+            document.getElementById('staffSOR').value = '';
             // Reset checkboxes and inputs
             days.forEach(d => { 
                 document.getElementById(`check-${d}`).checked = false;
@@ -344,10 +351,12 @@
                     return `${day} (${st}-${en})`;
                 }).join(', ');
 
+                const sorDisplay = s.sor ? `<span style="color:#555; margin-left:5px;">(SOR: ${s.sor})</span>` : '';
+
                 list.innerHTML += `
                     <div class="staff-item">
                         <div class="staff-info">
-                            <strong>${s.name}</strong> <span style="color:#999; font-size:0.7rem;">[${s.type}]</span>
+                            <strong>${s.name}</strong> ${sorDisplay} <span style="color:#999; font-size:0.7rem;">[${s.type}]</span>
                             <div class="staff-days">Working: ${dayStr}</div>
                         </div>
                         <button class="btn-x" onclick="delStaff(${s.id})">Remove</button>
@@ -402,9 +411,14 @@
                     const assigned = appData.roster.filter(r => r.slotId === slot.id && r.day === day);
                     
                     assigned.forEach(a => {
+                        // Look up guard to get SOR
+                        const staffMember = appData.staff.find(s => s.name === a.guard);
+                        const sorHtml = (staffMember && staffMember.sor) ? `<span class="sor-num">SOR: ${staffMember.sor}</span>` : '';
+
                         td.innerHTML += `
                             <div class="assignment-card">
                                 <span class="guard-name">${a.guard}</span>
+                                ${sorHtml}
                                 <span class="meal-link" onclick="openMealModal(${a.id})">Meal: ${a.meal}</span>
                                 <button class="btn-rem-assign" onclick="remAssign(${a.id})">×</button>
                             </div>`;
@@ -548,9 +562,6 @@
                 
                 // If we don't have enough people to cover minStaff + 1 on break, we can't schedule breaks
                 // Requirement: "min staff must be met even while another is on meal break"
-                // So, Remaining >= Min. => (Assigned - 1) >= Min. => Assigned >= Min + 1.
-                // Actually, if Assigned > Min, we have (Assigned - Min) "seats" for breaks.
-                
                 const breakSeats = assignedCount - minStaff;
                 
                 if (breakSeats <= 0) {
@@ -563,14 +574,11 @@
                 let shiftEnd = parse(slot.end);
                 if(shiftEnd < shiftStart) shiftEnd += 1440;
                 
-                // Define buffer (don't start break immediately)
-                // If shift is short (< 4h), smaller buffer
+                // Define buffer
                 const shiftLen = shiftEnd - shiftStart;
                 const buffer = shiftLen < 240 ? 15 : 60; 
 
                 // Available time tracks
-                // We have 'breakSeats' number of parallel tracks
-                // Initial availability for each track is start + buffer
                 const tracks = new Array(breakSeats).fill(shiftStart + buffer);
 
                 entries.forEach(r => {
@@ -623,17 +631,18 @@
         };
 
         window.exportCSV = () => {
-            let csv = "Location,Start,End,Day,Staff Name,Staff Type,Meal Period\n";
+            let csv = "Location,Start,End,Day,Staff Name,SOR #,Staff Type,Meal Period\n";
             appData.roster.forEach(r => {
                 const s = appData.slots.find(x => x.id === r.slotId);
                 const g = appData.staff.find(x => x.name === r.guard);
-                if(s) csv += `"${s.loc}",${s.start},${s.end},${r.day},"${r.guard}","${g ? g.type : ''}","${r.meal}"\n`;
+                const sor = g && g.sor ? g.sor : '';
+                if(s) csv += `"${s.loc}",${s.start},${s.end},${r.day},"${r.guard}","${sor}","${g ? g.type : ''}","${r.meal}"\n`;
             });
             const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
             const url = URL.createObjectURL(blob);
             const link = document.createElement("a");
             link.setAttribute("href", url);
-            link.setAttribute("download", `Weekly_Roster_${new Date().toLocaleDateString().replace(/\//g,'-')}.csv`);
+            link.setAttribute("download", `DetailPlanner_${new Date().toLocaleDateString().replace(/\//g,'-')}.csv`);
             link.click();
         };
     </script>
