@@ -101,10 +101,10 @@
                     <div style="display:flex; gap:5px;">
                         <select id="staffType"><option>Civilian</option><option>LE (Law Enforcement)</option><option>LP (Loss Prevention)</option></select>
                         <select id="staffGender"><option>Male</option><option>Female</option></select>
-                        <input type="text" id="staffFirst" placeholder="First Name *" style="flex:1;" required>
-                        <input type="text" id="staffMiddle" placeholder="Middle Initial" style="flex:1;">
-                        <input type="text" id="staffLast" placeholder="Last Name *" style="flex:1;" required>
-                        <input type="text" id="staffSuffix" placeholder="Suffix" style="flex:1;">
+                        <input type="text" id="staffFirst" placeholder="First Name *" style="flex:1;" required pattern="[A-Za-z]*">
+                        <input type="text" id="staffMiddle" placeholder="Middle Initial" style="flex:1;" pattern="[A-Za-z]*">
+                        <input type="text" id="staffLast" placeholder="Last Name *" style="flex:1;" required pattern="[A-Za-z]*">
+                        <input type="text" id="staffSuffix" placeholder="Suffix" style="flex:1;" pattern="[A-Za-z]*">
                     </div>
                     <div id="dailyScheduleInputs" class="day-selection-grid"></div>
                     <button onclick="addStaff()" class="btn btn-success">Save Staff Member</button>
@@ -121,11 +121,11 @@
                     <select id="slotLoc" style="grid-column: span 2;"></select>
                     <div style="display:flex; align-items:center; gap:5px;">
                         <label style="font-size:0.8rem; min-width:35px;">Start:</label>
-                        <input type="number" id="slotStart" placeholder="0000" style="flex:1;">
+                        <input type="text" id="slotStart" placeholder="0000" style="flex:1;" pattern="[0-9]{4}" maxlength="4" inputmode="numeric">
                     </div>
                     <div style="display:flex; align-items:center; gap:5px;">
                         <label style="font-size:0.8rem; min-width:35px;">End:</label>
-                        <input type="number" id="slotEnd" placeholder="2359" style="flex:1;">
+                        <input type="text" id="slotEnd" placeholder="2359" style="flex:1;" pattern="[0-9]{4}" maxlength="4" inputmode="numeric">
                     </div>
                     <button onclick="addSlot()" class="btn btn-primary" style="grid-column: span 2;">Add Shift Slot</button>
                 </div>
@@ -138,15 +138,15 @@
                     <select id="minLoc" style="grid-column: span 2;"></select>
                     <div style="display:flex; align-items:center; gap:5px; grid-column: span 2;">
                         <span style="font-size:0.8rem;">Guards Needed:</span>
-                        <input type="number" id="minCount" placeholder="1" min="0" style="flex:1;">
+                        <input type="number" id="minCount" placeholder="1" min="0" step="1" style="flex:1;">
                     </div>
                     <div style="display:flex; align-items:center; gap:5px;">
                         <label style="font-size:0.8rem; min-width:35px;">Start:</label>
-                        <input type="number" id="minStart" placeholder="0000" style="flex:1;">
+                        <input type="text" id="minStart" placeholder="0000" style="flex:1;" pattern="[0-9]{4}" maxlength="4" inputmode="numeric">
                     </div>
                     <div style="display:flex; align-items:center; gap:5px;">
                         <label style="font-size:0.8rem; min-width:35px;">End:</label>
-                        <input type="number" id="minEnd" placeholder="2359" style="flex:1;">
+                        <input type="text" id="minEnd" placeholder="2359" style="flex:1;" pattern="[0-9]{4}" maxlength="4" inputmode="numeric">
                     </div>
                     <button onclick="addMinRequirement()" class="btn btn-warning" style="grid-column: span 2; margin-top:5px;">Add Requirement</button>
                 </div>
@@ -246,15 +246,23 @@
         function addStaff() {
             const last = document.getElementById('staffLast').value.trim();
             const first = document.getElementById('staffFirst').value.trim();
+            const middle = document.getElementById('staffMiddle').value.trim();
+            const suffix = document.getElementById('staffSuffix').value.trim();
+            
             if (!last || !first) return alert("First and Last name required.");
+            if (!/^[A-Za-z]*$/.test(first)) return alert("First name must contain only letters.");
+            if (!/^[A-Za-z]*$/.test(last)) return alert("Last name must contain only letters.");
+            if (middle && !/^[A-Za-z]*$/.test(middle)) return alert("Middle initial must contain only letters.");
+            if (suffix && !/^[A-Za-z]*$/.test(suffix)) return alert("Suffix must contain only letters.");
+            
             const availableDays = days.filter(d => document.getElementById(`check-${d}`).checked);
             if (availableDays.length === 0) return alert("Select availability.");
             appData.staff.push({ 
                 id: Date.now(), 
                 firstName: first,
-                middleInitial: document.getElementById('staffMiddle').value.trim(),
+                middleInitial: middle,
                 lastName: last,
-                suffix: document.getElementById('staffSuffix').value.trim(),
+                suffix: suffix,
                 gender: document.getElementById('staffGender').value,
                 type: document.getElementById('staffType').value, 
                 availableDays 
@@ -283,9 +291,13 @@
         function addSlot() {
             const loc = document.getElementById('slotLoc').value;
             if(!loc) return;
-            const startVal = document.getElementById('slotStart').value || '0';
-            const endVal = document.getElementById('slotEnd').value || '2359';
+            const startVal = document.getElementById('slotStart').value;
+            const endVal = document.getElementById('slotEnd').value;
+            if (startVal.length !== 4 || !/^\d{4}$/.test(startVal)) return alert("Start time must be 4 digits (e.g., 0900)");
+            if (endVal.length !== 4 || !/^\d{4}$/.test(endVal)) return alert("End time must be 4 digits (e.g., 1700)");
             appData.slots.push({ id: Date.now(), loc, start: parseInt(startVal), end: parseInt(endVal) });
+            document.getElementById('slotStart').value = '';
+            document.getElementById('slotEnd').value = '';
             save(); renderRoster(); renderHoursStats();
             closeModal();
         }
@@ -306,13 +318,22 @@
         function addMinRequirement() {
             const loc = document.getElementById('minLoc').value;
             if(!loc) return;
+            const count = document.getElementById('minCount').value;
+            const startVal = document.getElementById('minStart').value;
+            const endVal = document.getElementById('minEnd').value;
+            if (!count || count < 0) return alert("Guards needed must be 0 or positive");
+            if (startVal.length !== 4 || !/^\d{4}$/.test(startVal)) return alert("Start time must be 4 digits (e.g., 0900)");
+            if (endVal.length !== 4 || !/^\d{4}$/.test(endVal)) return alert("End time must be 4 digits (e.g., 1700)");
             appData.minRequirements.push({
                 id: Date.now(),
                 loc,
-                count: parseInt(document.getElementById('minCount').value || 1),
-                start: parseInt(document.getElementById('minStart').value || 0),
-                end: parseInt(document.getElementById('minEnd').value || 2359)
+                count: parseInt(count),
+                start: parseInt(startVal),
+                end: parseInt(endVal)
             });
+            document.getElementById('minCount').value = '';
+            document.getElementById('minStart').value = '';
+            document.getElementById('minEnd').value = '';
             save(); renderMinReqs(); renderRoster();
         }
         function delMin(id) { appData.minRequirements = appData.minRequirements.filter(m => m.id !== id); save(); renderMinReqs(); renderRoster(); }
