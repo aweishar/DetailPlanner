@@ -230,7 +230,7 @@
             document.getElementById('dailyScheduleInputs').innerHTML = days.map(day => `
                 <label class="day-checkbox-item">
                     <span class="day-label">${day}</span>
-                    <input type="checkbox" id="check-${day}">
+                    <input type="checkbox" id="check-${day}" checked>
                 </label>
             `).join('');
         }
