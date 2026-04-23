@@ -210,6 +210,13 @@
         const staffTypes = ["Civ (Civilian)", "LE (Law Enforcement)", "LP (Loss Prevention)"];
         let appData = { locations: [], staff: [], slots: [], minRequirements: [], roster: [] };
 
+        function getStaffTypeAbbrev(fullType) {
+            if (fullType.includes('Civilian')) return 'Civ';
+            if (fullType.includes('Law Enforcement')) return 'LE';
+            if (fullType.includes('Loss Prevention')) return 'LP';
+            return fullType;
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             const saved = localStorage.getItem(STORAGE_KEY);
             if (saved) appData = JSON.parse(saved);
@@ -293,9 +300,18 @@
             const list = document.getElementById('staffList');
             list.innerHTML = appData.staff.map(s => {
                 const fullName = `${s.lastName}, ${s.firstName}${s.middleInitial ? ' ' + s.middleInitial : ''}${s.suffix ? ' ' + s.suffix : ''}`;
+                const rating = s.rating || 0;
+                const stars = '★'.repeat(rating) + '☆'.repeat(5 - rating);
+                const typeAbbrev = getStaffTypeAbbrev(s.type);
                 return `
                 <div class="staff-item">
-                    <div><b>${fullName}</b> <span class="staff-days">[${s.gender}] [${s.type}] Days: ${s.availableDays.join(',')}</span></div>
+                    <div style="flex:1;">
+                        <b>${fullName}</b> <span class="staff-days">[${s.gender}] [${typeAbbrev}]</span>
+                        <div style="margin-top:4px; font-size:0.85rem;">
+                            <div style="cursor:pointer; color:#2980b9; margin-bottom:2px;" onclick="openDaysModal(${s.id})" title="Click to edit">Days: <span style="font-weight:bold;">${s.availableDays.join(',')}</span></div>
+                            <div style="cursor:pointer; color:#d35400;" onclick="openRatingModal(${s.id})" title="Click to rate">Rating: <span style="font-weight:bold;">${stars}</span></div>
+                        </div>
+                    </div>
                     <button class="btn-x" onclick="delStaff(${s.id})">×</button>
                 </div>
             `;
@@ -477,9 +493,14 @@
                     assigned.forEach(a => {
                         const staff = appData.staff.find(s => s.id === a.guardId);
                         const guardName = staff ? `${staff.lastName}, ${staff.firstName}${staff.middleInitial ? ' ' + staff.middleInitial : ''}${staff.suffix ? ' ' + staff.suffix : ''}` : 'Unknown';
+                        const rating = staff ? (staff.rating || 0) : 0;
+                        const stars = '★'.repeat(rating) + '☆'.repeat(5 - rating);
+                        const typeAbbrev = staff ? getStaffTypeAbbrev(staff.type) : '';
                         td.innerHTML += `
                             <div class="assignment-card">
                                 <span class="guard-name">${guardName}</span>
+                                <span style="font-size: 0.7rem; color: #666; display: block;">${staff ? `[${staff.gender}] ${typeAbbrev}` : ''}</span>
+                                <span style="font-size: 0.7rem; color: #f39c12; display: block; margin-top: 2px;">Rating: ${stars}</span>
                                 ${a.sor ? `<span class="sor-num">SOR: ${a.sor}</span>` : ''}
                                 <span class="meal-link" onclick="openMealModal(${a.id})">Meal: ${a.meal || 'Pending'}</span>
                                 <button class="btn-rem-assign" onclick="remAssign(${a.id})">×</button>
@@ -521,7 +542,8 @@
                 <select id="assignStaff" style="width:100%; margin-bottom:15px;">
                     ${eligible.map(e => {
                         const fullName = `${e.lastName}, ${e.firstName}${e.middleInitial ? ' ' + e.middleInitial : ''}${e.suffix ? ' ' + e.suffix : ''}`;
-                        return `<option value="${e.id}">${fullName} (${e.type})</option>`;
+                        const typeAbbrev = getStaffTypeAbbrev(e.type);
+                        return `<option value="${e.id}">${fullName} (${typeAbbrev})</option>`;
                     }).join('')}
                 </select>
                 <input type="text" id="assignSOR" placeholder="SOR # (Optional)" style="width:94%;">
@@ -553,6 +575,65 @@
             document.getElementById('modalSave').onclick = () => {
                 r.meal = document.getElementById('newMeal').value;
                 save(); renderRoster(); renderHoursStats(); closeModal();
+            };
+            modal.style.display = 'flex';
+        };
+
+        window.openRatingModal = (staffId) => {
+            const staff = appData.staff.find(s => s.id === staffId);
+            if (!staff) return;
+            const guardName = `${staff.lastName}, ${staff.firstName}${staff.middleInitial ? ' ' + staff.middleInitial : ''}${staff.suffix ? ' ' + staff.suffix : ''}`;
+            const currentRating = staff.rating || 0;
+            const modal = document.getElementById('modal');
+            document.getElementById('modalSave').style.display = 'block';
+            document.getElementById('modalTitle').innerText = `Rate ${guardName}`;
+            let ratingHtml = '<div style="display:flex; gap:15px; justify-content:center; font-size:2rem;">';
+            for (let i = 1; i <= 5; i++) {
+                const isFilled = i <= currentRating;
+                ratingHtml += `<span style="cursor:pointer; color:${isFilled ? '#f39c12' : '#ddd'};" onclick="setRating(${staffId}, ${i})">★</span>`;
+            }
+            ratingHtml += '</div>';
+            document.getElementById('modalContent').innerHTML = ratingHtml;
+            document.getElementById('modalSave').onclick = closeModal;
+            modal.style.display = 'flex';
+        };
+
+        window.setRating = (staffId, rating) => {
+            const staff = appData.staff.find(s => s.id === staffId);
+            if (staff) {
+                staff.rating = rating;
+                save();
+                renderStaff();
+                openRatingModal(staffId);
+            }
+        };
+
+        window.openDaysModal = (staffId) => {
+            const staff = appData.staff.find(s => s.id === staffId);
+            if (!staff) return;
+            const guardName = `${staff.lastName}, ${staff.firstName}${staff.middleInitial ? ' ' + staff.middleInitial : ''}${staff.suffix ? ' ' + staff.suffix : ''}`;
+            const modal = document.getElementById('modal');
+            document.getElementById('modalSave').style.display = 'block';
+            document.getElementById('modalTitle').innerText = `Edit Days for ${guardName}`;
+            let daysHtml = '<div style="display:grid; grid-template-columns: repeat(2, 1fr); gap:10px;">';
+            days.forEach(day => {
+                const isChecked = staff.availableDays.includes(day);
+                daysHtml += `
+                    <label style="display:flex; align-items:center; gap:8px; cursor:pointer; padding:8px; border:1px solid #ddd; border-radius:4px; background:${isChecked ? '#d5f5e3' : '#fff'};">
+                        <input type="checkbox" id="day-${day}" ${isChecked ? 'checked' : ''} style="cursor:pointer;">
+                        <span style="font-weight:${isChecked ? 'bold' : 'normal'}; color:${isChecked ? '#27ae60' : '#666'};">${day}</span>
+                    </label>
+                `;
+            });
+            daysHtml += '</div>';
+            document.getElementById('modalContent').innerHTML = daysHtml;
+            document.getElementById('modalSave').onclick = () => {
+                const selectedDays = days.filter(day => document.getElementById(`day-${day}`).checked);
+                if (selectedDays.length === 0) return alert("Must select at least one day");
+                staff.availableDays = selectedDays;
+                save();
+                renderStaff();
+                closeModal();
             };
             modal.style.display = 'flex';
         };
@@ -621,7 +702,7 @@
                             <tbody>
                                 ${staffTypes.map(type => `
                                     <tr>
-                                        <td class="type-col">${type}</td>
+                                        <td class="type-col">${getStaffTypeAbbrev(type)}</td>
                                         ${days.map(d => `<td>${data[d][type].toFixed(1)}</td>`).join('')}
                                         <td style="font-weight:bold; background:#fdfdfd;">${data.Weekly[type].toFixed(1)}</td>
                                     </tr>
