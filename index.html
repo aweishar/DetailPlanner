@@ -100,8 +100,11 @@
                 <div style="display:flex; flex-direction:column; gap:10px;">
                     <div style="display:flex; gap:5px;">
                         <select id="staffType"><option>Civilian</option><option>LE (Law Enforcement)</option><option>LP (Loss Prevention)</option></select>
-                        <input type="text" id="staffLast" placeholder="Last Name" style="flex:1;">
+                        <select id="staffGender"><option>Male</option><option>Female</option></select>
                         <input type="text" id="staffFirst" placeholder="First Name" style="flex:1;">
+                        <input type="text" id="staffMiddle" placeholder="Middle Initial" style="flex:1;">
+                        <input type="text" id="staffLast" placeholder="Last Name" style="flex:1;">
+                        <input type="text" id="staffSuffix" placeholder="Suffix" style="flex:1;">
                     </div>
                     <div id="dailyScheduleInputs" class="day-selection-grid"></div>
                     <button onclick="addStaff()" class="btn btn-success">Save Staff Member</button>
@@ -246,20 +249,34 @@
             if (!last || !first) return alert("First and Last name required.");
             const availableDays = days.filter(d => document.getElementById(`check-${d}`).checked);
             if (availableDays.length === 0) return alert("Select availability.");
-            appData.staff.push({ id: Date.now(), name: `${last}, ${first}`, type: document.getElementById('staffType').value, availableDays });
+            appData.staff.push({ 
+                id: Date.now(), 
+                firstName: first,
+                middleInitial: document.getElementById('staffMiddle').value.trim(),
+                lastName: last,
+                suffix: document.getElementById('staffSuffix').value.trim(),
+                gender: document.getElementById('staffGender').value,
+                type: document.getElementById('staffType').value, 
+                availableDays 
+            });
             document.getElementById('staffLast').value = '';
             document.getElementById('staffFirst').value = '';
+            document.getElementById('staffMiddle').value = '';
+            document.getElementById('staffSuffix').value = '';
             save(); renderStaff();
         }
 
         function renderStaff() {
             const list = document.getElementById('staffList');
-            list.innerHTML = appData.staff.map(s => `
+            list.innerHTML = appData.staff.map(s => {
+                const fullName = `${s.lastName}, ${s.firstName}${s.middleInitial ? ' ' + s.middleInitial : ''}${s.suffix ? ' ' + s.suffix : ''}`;
+                return `
                 <div class="staff-item">
-                    <div><b>${s.name}</b> <span class="staff-days">[${s.type}] Days: ${s.availableDays.join(',')}</span></div>
+                    <div><b>${fullName}</b> <span class="staff-days">[${s.gender}] [${s.type}] Days: ${s.availableDays.join(',')}</span></div>
                     <button class="btn-x" onclick="delStaff(${s.id})">×</button>
                 </div>
-            `).join('');
+            `;
+            }).join('');
         }
         function delStaff(id) { appData.staff = appData.staff.filter(s => s.id !== id); save(); renderStaff(); }
 
@@ -332,9 +349,11 @@
                     const isMet = checkCoverage(slot.loc, day);
                     td.innerHTML += `<div class="coverage-badge ${isMet ? 'cov-ok' : 'cov-fail'}">${isMet ? 'Staffed' : 'Understaffed'}</div>`;
                     assigned.forEach(a => {
+                        const staff = appData.staff.find(s => s.id === a.guardId);
+                        const guardName = staff ? `${staff.lastName}, ${staff.firstName}${staff.middleInitial ? ' ' + staff.middleInitial : ''}${staff.suffix ? ' ' + staff.suffix : ''}` : 'Unknown';
                         td.innerHTML += `
                             <div class="assignment-card">
-                                <span class="guard-name">${a.guard}</span>
+                                <span class="guard-name">${guardName}</span>
                                 ${a.sor ? `<span class="sor-num">SOR: ${a.sor}</span>` : ''}
                                 <span class="meal-link" onclick="openMealModal(${a.id})">Meal: ${a.meal || 'Pending'}</span>
                                 <button class="btn-rem-assign" onclick="remAssign(${a.id})">×</button>
@@ -366,20 +385,23 @@
         }
 
         window.openAssignModal = (slotId, day) => {
-            const currentlyAssigned = appData.roster.filter(r => r.slotId === slotId && r.day === day).map(r => r.guard);
-            const eligible = appData.staff.filter(s => s.availableDays.includes(day) && !currentlyAssigned.includes(s.name));
+            const currentlyAssigned = appData.roster.filter(r => r.slotId === slotId && r.day === day).map(r => r.guardId);
+            const eligible = appData.staff.filter(s => s.availableDays.includes(day) && !currentlyAssigned.includes(s.id));
             if (eligible.length === 0) return;
             const modal = document.getElementById('modal');
             document.getElementById('modalSave').style.display = 'block';
             document.getElementById('modalTitle').innerText = `Assigning ${day}`;
             document.getElementById('modalContent').innerHTML = `
                 <select id="assignStaff" style="width:100%; margin-bottom:15px;">
-                    ${eligible.map(e => `<option value="${e.name}">${e.name} (${e.type})</option>`).join('')}
+                    ${eligible.map(e => {
+                        const fullName = `${e.lastName}, ${e.firstName}${e.middleInitial ? ' ' + e.middleInitial : ''}${e.suffix ? ' ' + e.suffix : ''}`;
+                        return `<option value="${e.id}">${fullName} (${e.type})</option>`;
+                    }).join('')}
                 </select>
                 <input type="text" id="assignSOR" placeholder="SOR # (Optional)" style="width:94%;">
             `;
             document.getElementById('modalSave').onclick = () => {
-                appData.roster.push({ id: Date.now(), slotId, day, guard: document.getElementById('assignStaff').value, sor: document.getElementById('assignSOR').value.trim(), meal: 'Pending' });
+                appData.roster.push({ id: Date.now(), slotId, day, guardId: parseInt(document.getElementById('assignStaff').value), sor: document.getElementById('assignSOR').value.trim(), meal: 'Pending' });
                 save(); renderRoster(); renderHoursStats(); closeModal();
             };
             modal.style.display = 'flex';
@@ -396,9 +418,11 @@
 
         window.openMealModal = (id) => {
             const r = appData.roster.find(x => x.id === id);
+            const staff = appData.staff.find(s => s.id === r.guardId);
+            const guardName = staff ? `${staff.lastName}, ${staff.firstName}${staff.middleInitial ? ' ' + staff.middleInitial : ''}${staff.suffix ? ' ' + staff.suffix : ''}` : 'Unknown';
             const modal = document.getElementById('modal');
             document.getElementById('modalSave').style.display = 'block';
-            document.getElementById('modalTitle').innerText = `Meal for ${r.guard}`;
+            document.getElementById('modalTitle').innerText = `Meal for ${guardName}`;
             document.getElementById('modalContent').innerHTML = `<input id="newMeal" value="${r.meal}" style="width:100%;">`;
             document.getElementById('modalSave').onclick = () => {
                 r.meal = document.getElementById('newMeal').value;
@@ -431,7 +455,7 @@
             // Calculate hours
             appData.roster.forEach(item => {
                 const slot = appData.slots.find(s => s.id === item.slotId);
-                const staff = appData.staff.find(s => s.name === item.guard);
+                const staff = appData.staff.find(s => s.id === item.guardId);
                 if (!slot || !staff) return;
                 
                 let hrs = (slot.end < slot.start) ? ((2400 - slot.start) + slot.end) / 100 : (slot.end - slot.start) / 100;
